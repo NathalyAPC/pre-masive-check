@@ -114,7 +114,7 @@ Normal repetitions are ignored: Spanish connectors (de, para, con, y…), number
 1. Open the tool. Until it is published on a server, double-click `index.html` and it will open in your browser.
 2. If the merchant has more than one branch, tick the branches checkbox.
 3. Drag your CSV onto the dashed area, or click **Elegir archivo** (choose file).
-4. Review the result. **Errores** (errors, in red) are at the top and must be fixed before uploading the file; **Avisos** (warnings, in yellow) come next. Each one shows the product, the row and what is wrong. Checks that found nothing are grouped at the end under **Sin problemas** (no problems).
+4. Review the result. **Errores** (errors, in red) are at the top and must be fixed before uploading the file; **Avisos** (warnings, in yellow) come next. Each one shows the product, the row and what is wrong. Checks that found nothing are listed at the end under **Sin problemas** (no problems), grouped by topic.
 5. Use **Copiar lista** (copy list) to paste the products and the reason into an email, Slack or a spreadsheet.
 6. Fix your file and upload it again until there are no errors left.
 
@@ -194,6 +194,7 @@ The checks live in the `CHECKS` list in `js/checks.js`. Each one is an object wi
 
 - `key`: a short identifier, for example `'precio-variantes'`.
 - `level`: `'error'` if BE rejects it or the business requires it, `'aviso'` (warning) if it is a recommendation.
+- `group`: the topic it belongs to, one of `GROUPS` (Archivo, Nombre, Descripción, Precio y stock, Medidas, Imágenes, Variantes y códigos, Marca, categoría y otros). It is used to group the checks in the "Sin problemas" card.
 - `title` and `hint`: the title and the explanation the user will see (in Spanish).
 - `run(catalog)`: receives the catalog grouped by product and returns a list of `{ ids, text, note }`. Each product in `catalog.products` has its rows in `rows`, with values by column name (`row.values.price`); the first row is `rows[0]`.
 - `notice(catalog, items)` (optional): a general notice shown above the list, or `null`.

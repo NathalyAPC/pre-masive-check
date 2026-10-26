@@ -30,6 +30,15 @@ const variant = (id, name, extra = {}) => ok(id, name, {
   main_image: '', category_id: '', weight_kg: '', width_cm: '', height_cm: '', length_cm: '', brand: '', description: '', ...extra,
 });
 
+/* ---------- Check groups ---------- */
+
+test('cada revisión pertenece a uno de los grupos de la pantalla', () => {
+  const { CHECKS, GROUPS } = require('../js/checks.js');
+  for (const c of CHECKS) assert.ok(GROUPS.includes(c.group), c.key + ': ' + c.group);
+  const result = run(['name,price,weight_kg,width_cm,height_cm,length_cm', 'Uno,1,1,1,1,1']);
+  assert.ok(result.checks.every((c) => GROUPS.includes(c.group)));
+});
+
 /* ---------- CSV reading ---------- */
 
 test('lee comillas, comas dentro de comillas, comillas escapadas, CRLF y BOM (CA-1.3)', () => {

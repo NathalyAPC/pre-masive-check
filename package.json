@@ -1,7 +1,7 @@
 {
   "name": "pre-masive-check",
   "version": "0.1.0",
-  "description": "Revisor de Catálogo: revisa el CSV de productos antes de la carga masiva.",
+  "description": "Auditor de Catálogo: audita el CSV de productos antes de la carga masiva.",
   "private": true,
   "scripts": {
     "test": "node --test"

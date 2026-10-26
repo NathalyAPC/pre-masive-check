@@ -134,21 +134,34 @@
 
   /** Checks with nothing to show, grouped in one compact card. */
   function renderClean(checks) {
-    var list = el('ul', { class: 'clean-list' });
     var isSkipped = function (c) { return !!(c.skipped || c.status === 'skipped'); };
-    checks = checks.filter(function (c) { return !isSkipped(c); }).concat(checks.filter(isSkipped));
-    checks.forEach(function (c) {
-      if (c.skipped || c.status === 'skipped') {
-        list.append(el('li', { class: 'skipped' }, el('span', { class: 'mark-icon' }, '–'),
-          el('span', null, el('strong', null, c.title), ' · No revisado: ' + (c.skipped || c.notice))));
-      } else {
+    var groups = el('div', { class: 'clean-groups' });
+    var order = Checks.GROUPS.concat(['Otros']);
+    var passed = checks.filter(function (c) { return !isSkipped(c); });
+    var skipped = checks.filter(isSkipped);
+    order.forEach(function (name) {
+      var inGroup = passed.filter(function (c) { return (order.indexOf(c.group) >= 0 ? c.group : 'Otros') === name; });
+      if (!inGroup.length) return;
+      var list = el('ul', { class: 'clean-list' });
+      inGroup.forEach(function (c) {
         list.append(el('li', null, el('span', { class: 'mark-icon' }, '✓'), el('span', null, c.title)));
-      }
+      });
+      groups.append(el('div', { class: 'clean-group' }, el('h4', null, name), list));
     });
-    return el('section', { class: 'check clean' },
+    var section = el('section', { class: 'check clean' },
       el('header', null, el('div', null, el('h3', null, 'Sin problemas'),
         el('p', { class: 'hint' }, 'Estas revisiones no encontraron nada.'))),
-      list);
+      groups);
+    // Checks that did not run go apart, below the groups.
+    if (skipped.length) {
+      var list = el('ul', { class: 'clean-list' });
+      skipped.forEach(function (c) {
+        list.append(el('li', { class: 'skipped' }, el('span', { class: 'mark-icon' }, '–'),
+          el('span', null, c.title, el('small', null, 'No revisado: ' + (c.skipped || c.notice)))));
+      });
+      section.append(el('div', { class: 'clean-skipped' }, list));
+    }
+    return section;
   }
 
   function needsAttention(c) {

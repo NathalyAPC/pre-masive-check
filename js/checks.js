@@ -641,6 +641,9 @@
 
   /* ---------- Checks ---------- */
 
+  /** Topics used to group the checks on screen, in display order. */
+  var GROUPS = ['Archivo', 'Nombre', 'Descripción', 'Precio y stock', 'Medidas', 'Imágenes', 'Variantes y códigos', 'Marca, categoría y otros'];
+
   var CHECKS = [
 
     /* ===== Errors: BE rejects the row or the product, or loads it wrong ===== */
@@ -648,6 +651,7 @@
     {
       key: 'archivo',
       level: 'error',
+      group: 'Archivo',
       title: 'Archivo',
       hint: 'BE solo acepta archivos .csv de hasta 50 MB, con las columnas name, price y las cuatro medidas.',
       run: function (c) {
@@ -669,6 +673,7 @@
     {
       key: 'nombre',
       level: 'error',
+      group: 'Nombre',
       title: 'Filas sin nombre',
       hint: 'name es obligatorio en cada fila, también en las variantes (CA-2.1).',
       run: function (c) {
@@ -679,6 +684,7 @@
     {
       key: 'sin-descripcion',
       level: 'error',
+      group: 'Descripción',
       title: 'Productos sin descripción',
       hint: 'La descripción es obligatoria para el negocio, aunque BE la acepte vacía. Se lee de la primera fila del producto (CA-3.3).',
       run: function (c) {
@@ -701,6 +707,7 @@
     {
       key: 'precio',
       level: 'error',
+      group: 'Precio y stock',
       title: 'Precio no válido',
       hint: 'price es obligatorio en cada fila: número de 0 en adelante, con punto o coma decimal, máximo 2 decimales y sin separador de miles (CA-2.1 a CA-2.3).',
       run: function (c) {
@@ -714,6 +721,7 @@
     {
       key: 'medidas',
       level: 'error',
+      group: 'Medidas',
       title: 'Peso y dimensiones',
       hint: 'weight_kg, width_cm, height_cm y length_cm son obligatorias en la primera fila de cada producto, con números mayores que 0; las variantes pueden dejarlas vacías (CA-2.4).',
       run: function (c) {
@@ -739,6 +747,7 @@
     {
       key: 'stock',
       level: 'error',
+      group: 'Precio y stock',
       title: 'Stock no válido',
       hint: 'Cuando viene, stock debe ser un número entero de 0 en adelante. Se revisa cada fila, porque cada variante tiene el suyo.',
       run: function (c) {
@@ -753,6 +762,7 @@
     {
       key: 'imagen-formato',
       level: 'error',
+      group: 'Imágenes',
       title: 'Imágenes mal referenciadas',
       hint: 'Cada imagen debe ser una URL http(s) completa o el nombre de un archivo del ZIP (.jpg, .jpeg, .png, .gif o .webp). Si hay varias, van separadas por coma (CA-4.1).',
       run: function (c) {
@@ -768,6 +778,7 @@
     {
       key: 'agrupacion',
       level: 'error',
+      group: 'Variantes y códigos',
       title: 'Productos que se van a partir',
       hint: 'external_id y post_id deben repetirse idénticos en todas las filas del producto; si faltan en alguna, esas filas se cargan como otro producto (CA-3.1, CA-3.2).',
       run: function (c) {
@@ -822,6 +833,7 @@
     {
       key: 'post-id',
       level: 'error',
+      group: 'Variantes y códigos',
       title: 'post_id no válido',
       hint: 'Cuando viene, post_id debe tener exactamente 24 caracteres hexadecimales (0-9, a-f). Aquí no se puede comprobar que exista ni que sea del comercio.',
       run: function (c) {
@@ -847,6 +859,7 @@
     {
       key: 'variante-repetida',
       level: 'error',
+      group: 'Variantes y códigos',
       title: 'external_variant_id repetido',
       hint: 'external_variant_id debe ser único dentro de cada producto.',
       run: function (c) {
@@ -872,6 +885,7 @@
     {
       key: 'marca',
       level: 'error',
+      group: 'Marca, categoría y otros',
       title: 'Marca no válida',
       hint: 'brand admite hasta 120 caracteres: letras, números, espacios y . , & \' + / ( ) ! -. Se lee de la primera fila del producto.',
       run: function (c) {
@@ -894,6 +908,7 @@
     {
       key: 'post-venta',
       level: 'error',
+      group: 'Marca, categoría y otros',
       title: 'requires_post_sale_action no válido',
       hint: 'Valores aceptados: sí, si, yes, true, 1, no, false o 0. Vacío no es error (CA-3.4).',
       run: function (c) {
@@ -908,6 +923,7 @@
     {
       key: 'sucursal',
       level: 'error',
+      group: 'Marca, categoría y otros',
       title: 'Filas sin sucursal',
       hint: 'Si el comercio tiene más de una sucursal, branch_id es obligatorio en cada fila. Es el código de sucursal que definió el comercio (CA-2.7).',
       skip: function (c) {
@@ -929,6 +945,7 @@
     {
       key: 'sin-imagen',
       level: 'aviso',
+      group: 'Imágenes',
       title: 'Productos sin imagen',
       hint: 'main_image está vacío en todas las filas del producto. BE lo carga sin imagen.',
       run: function (c) {
@@ -944,8 +961,9 @@
     {
       key: 'variantes-sin-imagen',
       level: 'aviso',
+      group: 'Imágenes',
       title: 'Variantes sin imagen',
-      hint: 'Cada variante, sobre todo si cambia de color, debería traer su propia imagen en main_image para que el cliente vea lo que elige. BE la carga sin imagen. Es una sugerencia, no un error.',
+      hint: 'Cada variante, sobre todo si cambia de color, debería traer su propia imagen en main_image para que el cliente vea lo que elige.',
       run: function (c) {
         if (!c.has('main_image')) return [];
         var items = [];
@@ -971,6 +989,7 @@
     {
       key: 'imagenes-cargan',
       level: 'aviso',
+      group: 'Imágenes',
       title: 'Imágenes que no cargan',
       hint: 'Se abre cada URL de main_image para comprobar que sea una imagen y que cargue. Si una falla, BE no rechaza el producto, pero la reporta como error de imagen (CA-4.3). Necesita conexión a internet.',
       run: function () { return []; },
@@ -994,8 +1013,9 @@
     {
       key: 'categoria',
       level: 'aviso',
+      group: 'Marca, categoría y otros',
       title: 'Productos sin categoría',
-      hint: 'category_id está vacío en la primera fila del producto. BE lo acepta y la IA lo categoriza después de la carga.',
+      hint: 'category_id está vacío en la primera fila del producto.',
       run: function (c) {
         if (!c.has('category_id')) return [fileItem('No hay columna category_id', 'La IA categorizará todos los productos después de la carga.')];
         var items = [];
@@ -1016,6 +1036,7 @@
     {
       key: 'sin-marca',
       level: 'aviso',
+      group: 'Marca, categoría y otros',
       title: 'Productos sin marca',
       hint: 'La marca no es obligatoria: es solo para que sepas qué productos se cargarán sin marca. Se lee de la primera fila del producto.',
       run: function (c) {
@@ -1036,6 +1057,7 @@
     {
       key: 'descripcion-calidad',
       level: 'aviso',
+      group: 'Descripción',
       title: 'Descripción con problemas',
       hint: 'Que tenga contenido propio (no solo el nombre ni la misma de otro producto), buen formato (sin MAYÚSCULAS sostenidas, signos repetidos ni caracteres mal codificados), sin texto repetido y separada en párrafos o lista si es larga.',
       run: function (c) {
@@ -1071,6 +1093,7 @@
     {
       key: 'html',
       level: 'aviso',
+      group: 'Descripción',
       title: 'HTML mal escrito en la descripción',
       hint: 'Si la descripción tiene HTML, se revisa que cada etiqueta se abra y se cierre bien, sin etiquetas cruzadas, desconocidas o peligrosas (como <script>). BE guarda la descripción tal cual, así que un error se vería en la tienda.',
       run: function (c) {
@@ -1090,6 +1113,7 @@
     {
       key: 'stock-vacio',
       level: 'aviso',
+      group: 'Precio y stock',
       title: 'Stock vacío',
       hint: 'Si stock está vacío, BE carga la variante con stock 1.',
       run: function (c) {
@@ -1105,6 +1129,7 @@
     {
       key: 'precio-cero',
       level: 'aviso',
+      group: 'Precio y stock',
       title: 'Precio en 0',
       hint: 'BE acepta precio 0, pero el producto se publicaría gratis.',
       run: function (c) {
@@ -1118,6 +1143,7 @@
     {
       key: 'columnas',
       level: 'aviso',
+      group: 'Archivo',
       title: 'Columnas que no se usan',
       hint: 'Columnas que BE ignora o que no son de la plantilla. Si una está mal escrita (por ejemplo, "prize"), sus datos no se cargan.',
       run: function (c) {
@@ -1135,6 +1161,7 @@
     {
       key: 'palabras-repetidas',
       level: 'aviso',
+      group: 'Nombre',
       title: 'Palabras repetidas en el título',
       hint: 'Se ignoran palabras comunes (de, para, con), números y unidades (cm, ml, gb).',
       run: function (c) {
@@ -1156,6 +1183,7 @@
     {
       key: 'nombres-duplicados',
       level: 'aviso',
+      group: 'Nombre',
       title: 'Nombres duplicados',
       hint: 'Productos distintos con el mismo título, sin importar mayúsculas ni tildes. Sin external_id, BE junta en uno los productos con el mismo nombre (CA-5.5).',
       run: function (c) {
@@ -1186,8 +1214,9 @@
     {
       key: 'posibles-variantes',
       level: 'aviso',
+      group: 'Variantes y códigos',
       title: 'Posibles variantes',
-      hint: 'Productos cargados por separado cuyo nombre solo cambia en el color o la talla (S, M, L o talla con número), o que se llaman igual pero tienen distinta talla o color en attr_*. Podrían ser un solo producto con variantes: mismo external_id en todas sus filas. El género y la edad (Men, Women, Kids, Junior…) no se mezclan. Es una sugerencia: decide el comercio.',
+      hint: 'Parecen el mismo producto en distinto color o talla, pero están cargados por separado. Se pueden unir en un solo producto con variantes usando el mismo external_id en todas sus filas. Nunca se juntan productos de distinto género o edad (Men, Women, Kids…). Es solo una sugerencia: decide el comercio.',
       run: function (c) {
         var fileSizes = new Set();
         allRows(c).forEach(function (r) { if (r.values.attr_talla) fileSizes.add(normText(r.values.attr_talla).trim()); });
@@ -1225,6 +1254,7 @@
     {
       key: 'sku-duplicados',
       level: 'aviso',
+      group: 'Variantes y códigos',
       title: 'variant_sku repetido',
       hint: 'BE permite repetir variant_sku (es solo informativo), pero suele ser un error al copiar filas.',
       run: function (c) {
@@ -1267,6 +1297,7 @@
         return {
           key: c.key,
           level: c.level,
+          group: c.group,
           title: c.title,
           hint: c.hint,
           skipped: skipped,
@@ -1288,6 +1319,7 @@
     IGNORED_WORDS: IGNORED_WORDS,
     WORD_PATTERN: WORD_PATTERN,
     CHECKS: CHECKS,
+    GROUPS: GROUPS,
     normText: normText,
     repeatedWords: repeatedWords,
     priceProblem: priceProblem,

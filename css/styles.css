@@ -193,14 +193,26 @@ mark { background: var(--mark); color: var(--mark-ink); padding: 0 3px; border-r
   text-underline-offset: 4px;
 }
 
-/* Checks without problems */
-.clean-list { list-style: none; margin: 14px 0 12px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px 20px; }
+/* Checks without problems, grouped by topic */
+/* Columns that fill top to bottom, so short groups don't leave gaps next to long ones. */
+.clean-groups {
+  columns: 230px 3; column-gap: 28px;
+  margin: 16px 0 6px; padding-top: 16px; border-top: 1px solid var(--line);
+}
+.clean-group { break-inside: avoid; margin-bottom: 18px; }
+.clean-group h4 {
+  margin: 0 0 8px; color: var(--accent); font-size: 12px; font-weight: 800;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.clean-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .clean-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 14.5px; }
+.clean-list li small { display: block; color: var(--muted-2); font-size: 12.5px; margin-top: 1px; }
 .clean-list .mark-icon {
   flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; margin-top: 1px;
   border-radius: 50%; background: var(--ok); color: var(--on-ok); font-size: 12px; font-weight: 800;
 }
-.clean-list li.skipped { grid-column: 1 / -1; color: var(--muted); }
+.clean-list li.skipped { color: var(--muted); }
+.clean-skipped { margin: 4px 0 12px; padding-top: 14px; border-top: 1px solid var(--line); }
 .clean-list li.skipped .mark-icon { background: var(--chip); color: var(--muted-2); }
 
 .foot { color: var(--muted-2); font-size: 13.5px; text-align: center; }
