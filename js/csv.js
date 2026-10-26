@@ -1,8 +1,8 @@
 /**
- * Lectura de archivos CSV.
+ * CSV reading.
  *
- * Funciona en el navegador (queda disponible como window.CsvParser)
- * y en Node (require) para las pruebas.
+ * Works in the browser (exposed as window.CsvParser)
+ * and in Node (require) for the tests.
  */
 (function (root, factory) {
   var api = factory();
@@ -14,9 +14,9 @@
   var DELIMITERS = [',', ';', '\t'];
 
   /**
-   * Detecta el separador (coma, punto y coma o tabulador) contando cuántas
-   * veces aparece cada uno en la primera línea, fuera de comillas.
-   * Excel en español suele guardar los CSV con punto y coma.
+   * Detects the delimiter (comma, semicolon or tab) by counting how many
+   * times each one appears in the first line, outside quotes.
+   * Spanish-locale Excel usually saves CSV files with semicolons.
    */
   function detectDelimiter(text) {
     var counts = { ',': 0, ';': 0, '\t': 0 };
@@ -34,10 +34,10 @@
   }
 
   /**
-   * Convierte el texto de un CSV en una lista de filas; cada fila es una lista de celdas.
-   * Soporta comillas, comillas escapadas (""), saltos de línea dentro de comillas,
-   * finales de línea LF, CRLF o CR, y el BOM de UTF-8.
-   * La fila 0 es el encabezado; el índice + 1 coincide con el número de fila en Excel.
+   * Turns CSV text into a list of rows; each row is a list of cells.
+   * Supports quotes, escaped quotes (""), line breaks inside quotes,
+   * LF, CRLF or CR line endings, and the UTF-8 BOM.
+   * Row 0 is the header; index + 1 matches the row number in Excel.
    */
   function parseCSV(text) {
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
@@ -73,8 +73,8 @@
   }
 
   /**
-   * Convierte los bytes del archivo en texto. Intenta UTF-8 y, si el archivo
-   * no es UTF-8 válido, usa Windows-1252 (lo habitual en CSV guardados por Excel).
+   * Turns the file bytes into text. Tries UTF-8 and, if the file is not
+   * valid UTF-8, falls back to Windows-1252 (common in CSV files saved by Excel).
    */
   function decode(buffer) {
     try {

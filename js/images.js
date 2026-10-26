@@ -1,12 +1,12 @@
 /**
- * Comprueba que los enlaces de imagen carguen.
+ * Checks that image links load.
  *
- * En el navegador abre cada enlace como una imagen (igual que lo haría la tienda)
- * y espera a que cargue o falle. No descarga nada al disco ni envía el CSV a
- * ningún lado: solo pide cada imagen a su servidor.
+ * In the browser it opens each link as an image (just like the store would)
+ * and waits for it to load or fail. It saves nothing to disk and never sends
+ * the CSV anywhere: it only requests each image from its own server.
  *
- * Funciona en el navegador (window.ImageCheck) y en Node (require) para las
- * pruebas, donde se le pasa un "loader" de mentira.
+ * Works in the browser (window.ImageCheck) and in Node (require) for the
+ * tests, which pass in a fake "loader".
  */
 (function (root, factory) {
   var api = factory();
@@ -16,13 +16,13 @@
   'use strict';
 
   var DEFAULTS = {
-    concurrency: 6,     // imágenes que se abren a la vez
-    timeoutMs: 15000    // tiempo máximo de espera por imagen
+    concurrency: 6,     // images opened at the same time
+    timeoutMs: 15000    // max wait time per image
   };
 
   /**
-   * Abre una imagen en el navegador. Resuelve con null si carga,
-   * o con la descripción del problema si no.
+   * Opens an image in the browser. Resolves with null if it loads,
+   * or with a description of the problem if it doesn't.
    */
   function browserLoader(url, timeoutMs) {
     return new Promise(function (resolve) {
@@ -43,8 +43,8 @@
       img.onload = function () {
         finish(img.naturalWidth > 0 ? null : 'está vacía');
       };
-      // El navegador no dice el motivo exacto: puede ser que no exista (404),
-      // que el enlace no sea una imagen o que el servidor la bloquee.
+      // The browser doesn't say why: it may not exist (404),
+      // the link may not be an image, or the server may block it.
       img.onerror = function () {
         finish('no carga (no existe, no es una imagen o el servidor la bloquea)');
       };
@@ -54,14 +54,14 @@
   }
 
   /**
-   * Comprueba una lista de enlaces y devuelve una Promise con un
-   * Map { enlace → problema o null }.
+   * Checks a list of links and returns a Promise with a
+   * Map { link → problem or null }.
    *
    * options:
-   *   loader(url, timeoutMs)  función que abre un enlace (por defecto, el navegador)
-   *   concurrency, timeoutMs  ver DEFAULTS
-   *   onProgress(hechas, total)
-   *   isCancelled()           devuelve true para detener la verificación
+   *   loader(url, timeoutMs)  function that opens a link (the browser by default)
+   *   concurrency, timeoutMs  see DEFAULTS
+   *   onProgress(done, total)
+   *   isCancelled()           returns true to stop checking
    */
   function verify(urls, options) {
     options = options || {};

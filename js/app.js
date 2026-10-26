@@ -1,21 +1,29 @@
 /**
- * Interfaz: lee el archivo, corre las revisiones y muestra el resultado.
- * Depende de csv.js (CsvParser), checks.js (Checks), images.js (ImageCheck)
- * y sample.js (SAMPLE_CSV).
+ * UI: reads the file, runs the checks and renders the result.
+ * Depends on csv.js (CsvParser), checks.js (Checks) and images.js (ImageCheck).
  */
 (function () {
   'use strict';
 
-  var MAX_VISIBLE = 100; // elementos por revisión antes de "Mostrar los restantes"
+  var MAX_VISIBLE = 100; // items per check before "Mostrar los restantes" (show the rest)
+
+  var GROUPS = [
+    { level: 'error', title: 'Errores', subtitle: 'La carga los rechaza o los carga distinto de lo esperado, o falta un dato obligatorio para el negocio. Corrígelos antes de subir el archivo.' },
+    { level: 'aviso', title: 'Avisos', subtitle: 'La carga los acepta, pero conviene revisarlos.' }
+  ];
 
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out');
   var errorBox = $('error');
-  var exampleBanner = $('banner');
   var dropZone = $('drop');
+  var branchesBox = $('multiBranch');
 
-  // Cada archivo nuevo cancela la verificación de imágenes del anterior.
+  // Each new analysis cancels the previous image check.
   var currentRun = 0;
+  // Last checked file, to re-run the analysis when the branches checkbox changes.
+  var last = null;
+  // Result of every URL already opened in this session (url → problem or null).
+  var imageCache = new Map();
 
   function el(tag, attrs) {
     var node = document.createElement(tag);
@@ -24,7 +32,11 @@
     return node;
   }
 
-  /** Escribe el título resaltando las palabras repetidas (sin usar innerHTML). */
+  function plural(n, one, many) {
+    return n + ' ' + (n === 1 ? one : many);
+  }
+
+  /** Writes the title with repeated words highlighted (without innerHTML). */
   function markRepeated(text, repeated) {
     var frag = document.createDocumentFragment();
     var last = 0;
@@ -40,7 +52,6 @@
 
   function showError(message) {
     out.replaceChildren();
-    exampleBanner.hidden = true;
     errorBox.textContent = message;
     errorBox.hidden = false;
   }
@@ -60,7 +71,7 @@
         var sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
-      } catch (e) { /* sin selección disponible */ }
+      } catch (e) { /* selection not available */ }
       flash('Selecciona y pulsa Ctrl+C');
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -70,27 +81,27 @@
     }
   }
 
-  /** Estado de una revisión: "Todo bien", "N por revisar" o "Verificando…". */
+  /* ---------- Rendering the result ---------- */
+
   function statusPill(check) {
     var count = check.items.length;
     if (check.status === 'verifying') return el('span', { class: 'pill wait' }, 'Verificando…');
-    if (check.status === 'skipped' && !count) return el('span', { class: 'pill wait' }, 'No verificado');
-    return el('span', { class: 'pill ' + (count ? 'bad' : 'ok') }, count ? count + ' por revisar' : 'Todo bien');
+    if (check.level === 'error') return el('span', { class: 'pill bad' }, count + ' por corregir');
+    return el('span', { class: 'pill warn' }, count + ' por revisar');
   }
 
   function renderCheck(check) {
     var count = check.items.length;
-    var section = el('section', { class: 'check', 'data-check': check.key });
+    var section = el('section', { class: 'check level-' + check.level, 'data-check': check.key });
     var meta = el('div', { class: 'meta' }, statusPill(check));
     section.append(el('header', null,
-      el('div', null, el('h2', null, check.title), el('p', { class: 'hint' }, check.hint)),
+      el('div', null, el('h3', null, check.title), el('p', { class: 'hint' }, check.hint)),
       meta));
 
     if (check.notice) section.append(el('p', { class: 'callout' }, check.notice));
 
     if (!count) {
-      if (check.status !== 'verifying') section.append(el('p', { class: 'none' }, 'Ninguno con este problema.'));
-      else section.append(el('div', { class: 'spacer' }));
+      section.append(el('div', { class: 'spacer' }));
       return section;
     }
 
@@ -121,45 +132,106 @@
     return section;
   }
 
-  function render(result, fileName, isExample) {
+  /** Checks with nothing to show, grouped in one compact card. */
+  function renderClean(checks) {
+    var list = el('ul', { class: 'clean-list' });
+    var isSkipped = function (c) { return !!(c.skipped || c.status === 'skipped'); };
+    checks = checks.filter(function (c) { return !isSkipped(c); }).concat(checks.filter(isSkipped));
+    checks.forEach(function (c) {
+      if (c.skipped || c.status === 'skipped') {
+        list.append(el('li', { class: 'skipped' }, el('span', { class: 'mark-icon' }, '–'),
+          el('span', null, el('strong', null, c.title), ' · No revisado: ' + (c.skipped || c.notice))));
+      } else {
+        list.append(el('li', null, el('span', { class: 'mark-icon' }, '✓'), el('span', null, c.title)));
+      }
+    });
+    return el('section', { class: 'check clean' },
+      el('header', null, el('div', null, el('h3', null, 'Sin problemas'),
+        el('p', { class: 'hint' }, 'Estas revisiones no encontraron nada.'))),
+      list);
+  }
+
+  function needsAttention(c) {
+    return c.items.length > 0 || c.status === 'verifying';
+  }
+
+  function render(result, fileName) {
     if (result.error) { showError(result.error); return; }
     out.replaceChildren();
     errorBox.hidden = true;
-    exampleBanner.hidden = !isExample;
 
+    var count = function (level) {
+      return result.checks.filter(function (c) { return c.level === level; })
+        .reduce(function (sum, c) { return sum + c.items.length; }, 0);
+    };
+    var errors = count('error');
+    var warnings = count('aviso');
     var verifying = result.checks.some(function (c) { return c.status === 'verifying'; });
-    var total = result.checks.reduce(function (sum, c) { return sum + c.items.length; }, 0);
-    var summaryPill = verifying
-      ? el('span', { class: 'pill wait' }, 'Verificando imágenes…')
-      : el('span', { class: 'pill ' + (total ? 'bad' : 'ok') }, total ? total + ' cosas por revisar' : 'Todo en orden');
-    out.append(el('div', { class: 'summary' },
-      el('div', null,
-        el('div', { class: 'file' }, fileName),
-        el('div', { class: 'count' }, result.stats.products + ' productos · ' + result.stats.rows + ' filas')),
-      summaryPill));
-    result.checks.forEach(function (c) { out.append(renderCheck(c)); });
 
-    if (!isExample) $('dropTitle').textContent = 'Arrastra otro CSV para revisarlo de nuevo';
+    var stat = function (value, label, state) {
+      return el('div', { class: 'stat' + (state ? ' is-' + state : '') }, el('b', null, String(value)), el('span', null, label));
+    };
+    var head = el('div', { class: 'summary-file' },
+      el('span', { class: 'file' }, fileName),
+      el('span', { class: 'count' }, plural(result.stats.rows, 'fila', 'filas')));
+    if (!errors && !warnings && !verifying) head.append(el('span', { class: 'pill ok' }, 'Todo en orden'));
+    if (verifying) head.append(el('span', { class: 'pill wait' }, 'Verificando imágenes…'));
+    out.append(el('div', { class: 'summary' }, head,
+      el('div', { class: 'stats' },
+        stat(result.stats.products, result.stats.products === 1 ? 'producto' : 'productos'),
+        stat(errors, errors === 1 ? 'error' : 'errores', errors ? 'bad' : 'ok'),
+        stat(warnings, warnings === 1 ? 'aviso' : 'avisos', warnings ? 'warn' : 'ok'))));
+
+    GROUPS.forEach(function (g) {
+      var checks = result.checks.filter(function (c) { return c.level === g.level && needsAttention(c); });
+      if (!checks.length) return;
+      out.append(el('div', { class: 'group-head level-' + g.level }, el('h2', null, g.title), el('p', null, g.subtitle)));
+      checks.forEach(function (c) { out.append(renderCheck(c)); });
+    });
+
+    var clean = result.checks.filter(function (c) { return !needsAttention(c); });
+    if (clean.length) out.append(renderClean(clean));
+
+    $('dropTitle').textContent = 'Arrastra otro CSV para revisarlo de nuevo';
   }
 
-  /** Abre los enlaces de imagen y actualiza la revisión al terminar. */
+  /* ---------- Images ---------- */
+
+  /** Merges what is known about each URL and updates the image check. */
+  function finishImages(check, targets, urls) {
+    var failed = Checks.imageLoadItems(targets, imageCache);
+    var failedUrls = urls.filter(function (u) { return imageCache.get(u); }).length;
+    check.items = check.items.concat(failed);
+    check.status = null;
+    var summary = failedUrls && failedUrls === urls.length
+      ? 'No cargó ninguna imagen. Revisa tu conexión a internet; si funciona, puede que el servidor de las imágenes las esté bloqueando.'
+      : 'Se abrieron ' + plural(urls.length, 'URL distinta', 'URLs distintas') +
+        (failedUrls ? '; ' + failedUrls + ' no cargan.' : ' y todas cargan.');
+    check.notice = summary + (check.baseNotice ? ' ' + check.baseNotice : '');
+  }
+
+  /** Opens the image URLs not checked yet and updates the result when done. */
   function verifyImages(result, fileName, runId) {
     var check = result.checks.find(function (c) { return c.pending; });
     if (!check) return;
     var targets = check.pending;
     var urls = targets.map(function (t) { return t.url; });
+    check.baseNotice = check.notice;
+    if (!urls.length) return;
 
-    if (!urls.length) { check.status = null; return; }
+    var toOpen = urls.filter(function (u) { return !imageCache.has(u); });
+    if (!toOpen.length) { finishImages(check, targets, urls); return; }
+
     if (navigator.onLine === false) {
       check.status = 'skipped';
-      check.notice = 'Sin conexión a internet: no se pudieron abrir los enlaces. Conéctate y vuelve a subir el archivo.';
+      check.notice = 'no hay conexión a internet. Conéctate y vuelve a subir el archivo.';
       return;
     }
 
     check.status = 'verifying';
-    check.notice = 'Abriendo ' + urls.length + (urls.length === 1 ? ' enlace distinto…' : ' enlaces distintos…');
+    check.notice = 'Abriendo ' + plural(toOpen.length, 'URL distinta', 'URLs distintas') + '…' + (check.baseNotice ? ' ' + check.baseNotice : '');
 
-    ImageCheck.verify(urls, {
+    ImageCheck.verify(toOpen, {
       isCancelled: function () { return runId !== currentRun; },
       onProgress: function (done, total) {
         if (runId !== currentRun) return;
@@ -167,50 +239,42 @@
         if (pill) pill.textContent = 'Verificando ' + done + ' de ' + total;
       }
     }).then(function (results) {
+      results.forEach(function (problem, url) { imageCache.set(url, problem); });
       if (runId !== currentRun) return;
-      var failed = Checks.imageLoadItems(targets, results);
-      var failedUrls = urls.filter(function (u) { return results.get(u); }).length;
-      check.items = check.items.concat(failed);
-      check.status = null;
-      check.notice = failedUrls && failedUrls === urls.length
-        ? 'No cargó ninguna imagen. Revisa tu conexión a internet; si funciona, puede que el servidor de las imágenes las esté bloqueando.'
-        : 'Se abrieron ' + urls.length + (urls.length === 1 ? ' enlace distinto' : ' enlaces distintos') +
-          (failedUrls ? '; ' + failedUrls + ' no cargan.' : ' y todos cargan.');
-      render(result, fileName, false);
+      finishImages(check, targets, urls);
+      render(result, fileName);
     });
   }
 
-  function run(text, fileName, isExample) {
+  /* ---------- Analysis ---------- */
+
+  function run(text, file) {
+    last = { text: text, file: file };
     var runId = ++currentRun;
     var result;
     try {
-      result = Checks.analyze(CsvParser.parseCSV(text));
+      result = Checks.analyze(CsvParser.parseCSV(text), { file: file, multipleBranches: branchesBox.checked });
     } catch (e) {
       console.error(e);
       result = { error: 'No pude leer el archivo. Revisa que sea un CSV de texto.' };
     }
 
-    if (!result.error) {
-      var imageCheck = result.checks.find(function (c) { return c.pending; });
-      if (imageCheck && isExample) {
-        imageCheck.status = 'skipped';
-        imageCheck.notice = 'En el ejemplo solo se revisa que los enlaces estén bien escritos. Con tu archivo se abre cada enlace.';
-      } else if (imageCheck) {
-        verifyImages(result, fileName, runId);
-      }
-    }
-    render(result, fileName, isExample);
+    if (!result.error) verifyImages(result, file.name, runId);
+    render(result, file.name);
   }
 
   function handleFile(file) {
     if (!file) return;
     if (/\.(xlsx|xls|xlsm|numbers)$/i.test(file.name)) {
       currentRun++;
+      last = null;
       showError('Ese archivo es de Excel. Ábrelo en Excel y usa Archivo → Guardar como → CSV UTF-8, y sube el CSV.');
       return;
     }
     var reader = new FileReader();
-    reader.onload = function () { run(CsvParser.decode(reader.result), file.name, false); };
+    reader.onload = function () {
+      run(CsvParser.decode(reader.result), { name: file.name, size: file.size });
+    };
     reader.onerror = function () { showError('No pude abrir el archivo.'); };
     reader.readAsArrayBuffer(file);
   }
@@ -219,6 +283,9 @@
     handleFile(e.target.files[0]);
     e.target.value = '';
   });
+  branchesBox.addEventListener('change', function () {
+    if (last) run(last.text, last.file);
+  });
   ['dragenter', 'dragover'].forEach(function (t) {
     dropZone.addEventListener(t, function (e) { e.preventDefault(); dropZone.classList.add('over'); });
   });
@@ -226,10 +293,9 @@
     dropZone.addEventListener(t, function (e) { e.preventDefault(); dropZone.classList.remove('over'); });
   });
   dropZone.addEventListener('drop', function (e) { handleFile(e.dataTransfer.files[0]); });
-  // Evita que el navegador abra el archivo si se suelta fuera de la zona.
+  // Keeps the browser from opening the file when it is dropped outside the zone.
   ['dragover', 'drop'].forEach(function (t) {
     window.addEventListener(t, function (e) { e.preventDefault(); });
   });
 
-  run(window.SAMPLE_CSV, 'ejemplo.csv', true);
 })();
