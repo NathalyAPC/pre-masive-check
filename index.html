@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Revisor de Catálogo</title>
+  <meta name="description" content="Revisa el CSV del catálogo antes de la carga masiva: imágenes, categoría, precio, stock, medidas, marca, descripción, títulos y duplicados.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <div>
+      <h1>Revisor de Catálogo</h1>
+      <p class="lead">Sube el CSV de productos y te muestro qué corregir antes de la carga masiva: imágenes, categoría, precio, stock, medidas, marca, descripción, títulos y duplicados.</p>
+    </div>
+
+    <label class="drop" id="drop" for="file">
+      <input type="file" id="file" accept=".csv,.txt,text/csv">
+      <span class="big" id="dropTitle">Arrastra tu archivo CSV aquí</span>
+      <span class="btn">Elegir archivo</span>
+      <span class="small">El archivo se lee en tu navegador y no se envía a ningún lado. Si lo tienes en Excel, guárdalo antes como CSV.</span>
+    </label>
+
+    <div id="banner" class="banner" hidden>Estás viendo un ejemplo con productos inventados. Sube tu archivo para revisar el tuyo.</div>
+    <div id="error" class="error" role="alert" hidden></div>
+
+    <div id="out" class="results" aria-live="polite"></div>
+
+    <p class="foot">Se cuenta por producto, no por fila: las variantes de un mismo producto cuentan una sola vez.</p>
+  </main>
+
+  <script src="js/csv.js"></script>
+  <script src="js/checks.js"></script>
+  <script src="js/images.js"></script>
+  <script src="js/sample.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
