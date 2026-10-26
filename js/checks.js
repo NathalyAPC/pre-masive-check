@@ -48,7 +48,7 @@
   ].concat(DIMENSION_COLUMNS);
 
   /** Columns BE receives but ignores. */
-  var IGNORED_COLUMNS = { condition: 'BE la ignora: todos los productos se crean como nuevos.' };
+  var IGNORED_COLUMNS = { condition: 'No se usa: todos los productos se cargan como nuevos.' };
 
   /** Valid extensions for images referenced by file name (CA-4.1). */
   var IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -120,7 +120,7 @@
     if (!NUMBER_PATTERN.test(raw)) return 'no es un número ("' + raw + '")';
     var decimals = raw.split(/[.,]/)[1] || '';
     if (decimals.length > LIMITS.priceMaxDecimals) {
-      return 'tiene más de ' + LIMITS.priceMaxDecimals + ' decimales ("' + raw + '"); BE no lo redondea' +
+      return 'tiene más de ' + LIMITS.priceMaxDecimals + ' decimales ("' + raw + '"); no se redondea' +
         (decimals.length === 3 ? '. Si es un separador de miles, escríbelo sin él' : '');
     }
     return null;
@@ -136,7 +136,7 @@
     if (!NUMBER_PATTERN.test(raw)) return 'no es un número ("' + raw + '")';
     var value = toNumber(raw);
     if (value === 0) return 'es 0';
-    if (Math.round(value * 100) / 100 === 0) return 'se redondea a 0 ("' + raw + '"); BE guarda 2 decimales';
+    if (Math.round(value * 100) / 100 === 0) return 'se redondea a 0 ("' + raw + '"); solo se guardan 2 decimales';
     return null;
   }
 
@@ -632,7 +632,7 @@
   /** Text for a product field missing from the first row (CA-3.3). */
   function missingInFirstRow(p, column) {
     var later = laterRowWith(p, column);
-    return 'falta ' + column + (later ? ' (está en la fila ' + later + ', pero BE solo lo lee de la primera fila del producto)' : '');
+    return 'falta ' + column + (later ? ' (está en la fila ' + later + ', pero solo se toma de la primera fila del producto)' : '');
   }
 
   function rowList(rows) {
@@ -653,11 +653,11 @@
       level: 'error',
       group: 'Archivo',
       title: 'Archivo',
-      hint: 'BE solo acepta archivos .csv de hasta 50 MB, con las columnas name, price y las cuatro medidas.',
+      hint: 'Solo se aceptan archivos .csv de hasta 50 MB, con las columnas name, price y las cuatro medidas.',
       run: function (c) {
         var items = [];
         if (c.file && c.file.name && !/\.csv$/i.test(c.file.name)) {
-          items.push(fileItem('El archivo no termina en .csv', 'BE rechaza la carga. Guárdalo como CSV antes de subirlo.'));
+          items.push(fileItem('El archivo no termina en .csv', 'No se podrá cargar. Guárdalo como CSV antes de subirlo.'));
         }
         if (c.file && c.file.size > LIMITS.fileMB * 1024 * 1024) {
           items.push(fileItem('El archivo pesa ' + (c.file.size / 1024 / 1024).toFixed(1) + ' MB',
@@ -665,7 +665,7 @@
         }
         var missing = REQUIRED_COLUMNS.filter(function (col) { return !c.has(col); });
         if (missing.length) {
-          items.push(fileItem((missing.length === 1 ? 'Falta ' : 'Faltan ') + columnsText(missing), 'Son obligatorias: sin ellas BE rechaza las filas.'));
+          items.push(fileItem((missing.length === 1 ? 'Falta ' : 'Faltan ') + columnsText(missing), 'Son obligatorias: sin ellas las filas no se cargarán.'));
         }
         return items;
       }
@@ -675,7 +675,7 @@
       level: 'error',
       group: 'Nombre',
       title: 'Filas sin nombre',
-      hint: 'name es obligatorio en cada fila, también en las variantes (CA-2.1).',
+      hint: 'name es obligatorio en cada fila, también en las variantes.',
       run: function (c) {
         if (!c.has('name')) return [];
         return perRow(c, function (r) { return r.values.name ? null : 'Fila ' + r.row + ': name está vacío'; });
@@ -686,7 +686,7 @@
       level: 'error',
       group: 'Descripción',
       title: 'Productos sin descripción',
-      hint: 'La descripción es obligatoria para el negocio, aunque BE la acepte vacía. Se lee de la primera fila del producto (CA-3.3).',
+      hint: 'La descripción es obligatoria. Se toma de la primera fila del producto.',
       run: function (c) {
         if (!c.has('description')) return [fileItem('Falta la columna description', 'Ningún producto tendría descripción.')];
         var items = [];
@@ -694,7 +694,7 @@
           if (descriptionText(p.rows[0].values.description)) return;
           var later = laterRowWith(p, 'description');
           items.push(productItem(p, 'Fila ' + p.rows[0].row + ': ' + (later
-            ? 'está en la fila ' + later + ', pero BE solo la lee de la primera fila del producto'
+            ? 'está en la fila ' + later + ', pero solo se toma de la primera fila del producto'
             : 'description está vacía')));
         });
         return items;
@@ -709,7 +709,7 @@
       level: 'error',
       group: 'Precio y stock',
       title: 'Precio no válido',
-      hint: 'price es obligatorio en cada fila: número de 0 en adelante, con punto o coma decimal, máximo 2 decimales y sin separador de miles (CA-2.1 a CA-2.3).',
+      hint: 'price es obligatorio en cada fila: número de 0 en adelante, con punto o coma decimal, máximo 2 decimales y sin separador de miles.',
       run: function (c) {
         if (!c.has('price')) return [];
         return perRow(c, function (r) {
@@ -723,7 +723,7 @@
       level: 'error',
       group: 'Medidas',
       title: 'Peso y dimensiones',
-      hint: 'weight_kg, width_cm, height_cm y length_cm son obligatorias en la primera fila de cada producto, con números mayores que 0; las variantes pueden dejarlas vacías (CA-2.4).',
+      hint: 'weight_kg, width_cm, height_cm y length_cm son obligatorias en la primera fila de cada producto, con números mayores que 0; las variantes pueden dejarlas vacías.',
       run: function (c) {
         var columns = DIMENSION_COLUMNS.filter(function (col) { return c.has(col); });
         if (!columns.length) return [];
@@ -764,7 +764,7 @@
       level: 'error',
       group: 'Imágenes',
       title: 'Imágenes mal referenciadas',
-      hint: 'Cada imagen debe ser una URL http(s) completa o el nombre de un archivo del ZIP (.jpg, .jpeg, .png, .gif o .webp). Si hay varias, van separadas por coma (CA-4.1).',
+      hint: 'Cada imagen debe ser una URL http(s) completa o el nombre de un archivo del ZIP (.jpg, .jpeg, .png, .gif o .webp). Si hay varias, van separadas por coma.',
       run: function (c) {
         if (!c.has('main_image')) return [];
         return perRow(c, function (r) {
@@ -780,7 +780,7 @@
       level: 'error',
       group: 'Variantes y códigos',
       title: 'Productos que se van a partir',
-      hint: 'external_id y post_id deben repetirse idénticos en todas las filas del producto; si faltan en alguna, esas filas se cargan como otro producto (CA-3.1, CA-3.2).',
+      hint: 'external_id y post_id deben repetirse idénticos en todas las filas del producto; si faltan en alguna, esas filas se cargan como otro producto.',
       run: function (c) {
         var items = [];
 
@@ -824,7 +824,7 @@
           items.push({
             ids: [postId],
             text: 'Un post_id con varios external_id',
-            note: 'Aparece con external_id ' + Array.from(exts).join(', ') + ': BE rechaza el producto.'
+            note: 'Aparece con external_id ' + Array.from(exts).join(', ') + ': el producto no se cargará.'
           });
         });
         return items;
@@ -910,7 +910,7 @@
       level: 'error',
       group: 'Marca, categoría y otros',
       title: 'requires_post_sale_action no válido',
-      hint: 'Valores aceptados: sí, si, yes, true, 1, no, false o 0. Vacío no es error (CA-3.4).',
+      hint: 'Valores aceptados: sí, si, yes, true, 1, no, false o 0. Vacío no es error.',
       run: function (c) {
         if (!c.has('requires_post_sale_action')) return [];
         return perRow(c, function (r) {
@@ -925,12 +925,12 @@
       level: 'error',
       group: 'Marca, categoría y otros',
       title: 'Filas sin sucursal',
-      hint: 'Si el comercio tiene más de una sucursal, branch_id es obligatorio en cada fila. Es el código de sucursal que definió el comercio (CA-2.7).',
+      hint: 'Si el comercio tiene más de una sucursal, branch_id es obligatorio en cada fila. Es el código de sucursal que definió el comercio.',
       skip: function (c) {
         return c.multipleBranches ? null : 'solo se revisa si marcas que el comercio tiene más de una sucursal.';
       },
       run: function (c) {
-        if (!c.has('branch_id')) return [fileItem('Falta la columna branch_id', 'Con más de una sucursal es obligatoria: BE rechazaría todas las filas.')];
+        if (!c.has('branch_id')) return [fileItem('Falta la columna branch_id', 'Con más de una sucursal es obligatoria: sin ella no se cargará ninguna fila.')];
         var items = [];
         c.products.forEach(function (p) {
           var rows = p.rows.filter(function (r) { return !r.values.branch_id; }).map(function (r) { return r.row; });
@@ -947,7 +947,7 @@
       level: 'aviso',
       group: 'Imágenes',
       title: 'Productos sin imagen',
-      hint: 'main_image está vacío en todas las filas del producto. BE lo carga sin imagen.',
+      hint: 'main_image está vacío en todas las filas del producto. Se cargará sin imagen.',
       run: function (c) {
         if (!c.has('main_image')) return [fileItem('No hay columna main_image', 'Todos los productos se cargarán sin imagen.')];
         var items = [];
@@ -991,14 +991,14 @@
       level: 'aviso',
       group: 'Imágenes',
       title: 'Imágenes que no cargan',
-      hint: 'Se abre cada URL de main_image para comprobar que sea una imagen y que cargue. Si una falla, BE no rechaza el producto, pero la reporta como error de imagen (CA-4.3). Necesita conexión a internet.',
+      hint: 'Se abre cada URL de main_image para comprobar que sea una imagen y que cargue.',
       run: function () { return []; },
       notice: function (c) {
         var notes = [];
         var urls = imageTargets(c).length;
         if (urls > LIMITS.maxImageUrls) {
-          notes.push('Hay ' + urls + ' URLs distintas: BE descarga como máximo ' + LIMITS.maxImageUrls +
-            ' por carga y el resto queda como enlace externo (CA-4.2).');
+          notes.push('Hay ' + urls + ' URLs distintas: se descargan como máximo ' + LIMITS.maxImageUrls +
+            ' por carga y el resto quedará como enlace externo.');
         }
         var zip = zipImageRefs(c).size;
         if (zip) {
@@ -1022,7 +1022,7 @@
         c.products.forEach(function (p) {
           if (p.rows[0].values.category_id) return;
           var later = laterRowWith(p, 'category_id');
-          items.push(productItem(p, later ? 'Está en la fila ' + later + ', pero BE solo lo lee de la primera fila del producto' : null));
+          items.push(productItem(p, later ? 'Está en la fila ' + later + ', pero solo se toma de la primera fila del producto' : null));
         });
         return items;
       },
@@ -1045,7 +1045,7 @@
         c.products.forEach(function (p) {
           if (p.rows[0].values.brand) return;
           var later = laterRowWith(p, 'brand');
-          items.push(productItem(p, later ? 'Está en la fila ' + later + ', pero BE solo la lee de la primera fila del producto' : null));
+          items.push(productItem(p, later ? 'Está en la fila ' + later + ', pero solo se toma de la primera fila del producto' : null));
         });
         return items;
       },
@@ -1095,7 +1095,7 @@
       level: 'aviso',
       group: 'Descripción',
       title: 'HTML mal escrito en la descripción',
-      hint: 'Si la descripción tiene HTML, se revisa que cada etiqueta se abra y se cierre bien, sin etiquetas cruzadas, desconocidas o peligrosas (como <script>). BE guarda la descripción tal cual, así que un error se vería en la tienda.',
+      hint: 'Si la descripción tiene HTML, se revisa que cada etiqueta se abra y se cierre bien, sin etiquetas cruzadas, desconocidas o peligrosas (como <script>). La descripción se publica tal cual, así que un error se vería en la tienda.',
       run: function (c) {
         if (!c.has('description')) return [];
         var items = [];
@@ -1115,7 +1115,7 @@
       level: 'aviso',
       group: 'Precio y stock',
       title: 'Stock vacío',
-      hint: 'Si stock está vacío, BE carga la variante con stock 1.',
+      hint: 'Si stock está vacío, la variante se cargará con stock 1.',
       run: function (c) {
         if (!c.has('stock')) return [fileItem('No hay columna stock', 'Todas las variantes se cargarán con stock 1.')];
         var items = [];
@@ -1131,7 +1131,7 @@
       level: 'aviso',
       group: 'Precio y stock',
       title: 'Precio en 0',
-      hint: 'BE acepta precio 0, pero el producto se publicaría gratis.',
+      hint: 'Con precio 0, el producto se publicaría gratis.',
       run: function (c) {
         if (!c.has('price')) return [];
         return perRow(c, function (r) {
@@ -1145,7 +1145,7 @@
       level: 'aviso',
       group: 'Archivo',
       title: 'Columnas que no se usan',
-      hint: 'Columnas que BE ignora o que no son de la plantilla. Si una está mal escrita (por ejemplo, "prize"), sus datos no se cargan.',
+      hint: 'Columnas que no se usan en la carga o que no son de la plantilla. Si una está mal escrita (por ejemplo, "prize"), sus datos no se cargan.',
       run: function (c) {
         var items = [];
         c.header.forEach(function (col) {
@@ -1185,7 +1185,7 @@
       level: 'aviso',
       group: 'Nombre',
       title: 'Nombres duplicados',
-      hint: 'Productos distintos con el mismo título, sin importar mayúsculas ni tildes. Sin external_id, BE junta en uno los productos con el mismo nombre (CA-5.5).',
+      hint: 'Productos distintos con el mismo título, sin importar mayúsculas ni tildes. Sin external_id, los productos con el mismo nombre se cargarán como uno solo.',
       run: function (c) {
         // Rows without external_id that split from their product are already reported in "Productos que se van a partir".
         var extNames = new Set();
@@ -1256,7 +1256,7 @@
       level: 'aviso',
       group: 'Variantes y códigos',
       title: 'variant_sku repetido',
-      hint: 'BE permite repetir variant_sku (es solo informativo), pero suele ser un error al copiar filas.',
+      hint: 'Se puede repetir variant_sku (es solo informativo), pero suele ser un error al copiar filas.',
       run: function (c) {
         if (!c.has('variant_sku')) return [];
         var bySku = new Map();

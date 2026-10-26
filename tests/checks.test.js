@@ -102,7 +102,7 @@ test('reglas del precio (CA-2.1 a CA-2.3)', () => {
   for (const good of ['0', '45', '19.99', '19,99', '2500.00', '45.5']) assert.equal(priceProblem(good), null, good);
   assert.match(priceProblem(''), /vacío/);
   assert.match(priceProblem('-5'), /negativo/);
-  assert.match(priceProblem('1.247'), /más de 2 decimales.*no lo redondea.*separador de miles/);
+  assert.match(priceProblem('1.247'), /más de 2 decimales.*no se redondea.*separador de miles/);
   assert.match(priceProblem('1.2475'), /más de 2 decimales/);
   assert.match(priceProblem('1.500'), /separador de miles/);
   assert.match(priceProblem('1,500'), /separador de miles/);
@@ -148,7 +148,7 @@ test('las medidas se exigen en la primera fila del producto; las variantes puede
   assert.deepEqual(idsOf(result, 'medidas'), ['P2', 'P3', 'P4']);
   const notes = notesOf(result, 'medidas');
   assert.equal(notes[0], 'Fila 4: falta height_cm');
-  assert.match(notes[1], /^Fila 5: falta weight_kg \(está en la fila 6, pero BE solo lo lee de la primera fila/);
+  assert.match(notes[1], /^Fila 5: falta weight_kg \(está en la fila 6, pero solo se toma de la primera fila/);
   assert.equal(notes[2], 'Fila 7: faltan weight_kg, width_cm, height_cm, length_cm');
 });
 
@@ -198,7 +198,7 @@ test('cada URL se abre una sola vez aunque la usen varios productos', () => {
 test('avisa cuando hay más URLs distintas de las que BE descarga (CA-4.2)', () => {
   const lines = [FULL];
   for (let i = 0; i < 1501; i++) lines.push(ok('P' + i, 'Producto ' + i));
-  assert.match(check(run(lines), 'imagenes-cargan').notice, /Hay 1501 URLs distintas: BE descarga como máximo 1500/);
+  assert.match(check(run(lines), 'imagenes-cargan').notice, /Hay 1501 URLs distintas: se descargan como máximo 1500/);
 });
 
 test('las URLs que no cargan se muestran por producto', () => {
@@ -287,7 +287,7 @@ test('post_id: 24 caracteres hexadecimales, en todas las filas y con un solo ext
   ]);
   assert.deepEqual(check(result, 'agrupacion').items.map((i) => i.ids[0] + ': ' + i.note), [
     'P1: Fila 3 sin post_id: repítelo en todas las filas del producto',
-    'bbbbbbbbbbbbbbbbbbbbbbbb: Aparece con external_id P2, P3: BE rechaza el producto.',
+    'bbbbbbbbbbbbbbbbbbbbbbbb: Aparece con external_id P2, P3: el producto no se cargará.',
   ]);
   assert.deepEqual(notesOf(result, 'post-id'), ['Fila 6: "123" tiene 3 caracteres o no es hexadecimal']);
 });
@@ -341,7 +341,7 @@ test('categoría, marca y descripción se leen de la primera fila (CA-3.3)', () 
     ok('P3', 'Sin marca', { brand: '' }),
   ]);
   assert.deepEqual(idsOf(result, 'categoria'), ['P1', 'P2']);
-  assert.match(notesOf(result, 'categoria')[1], /Está en la fila 4, pero BE solo lo lee de la primera fila/);
+  assert.match(notesOf(result, 'categoria')[1], /Está en la fila 4, pero solo se toma de la primera fila/);
   assert.deepEqual(idsOf(result, 'sin-marca'), ['P3']);
 });
 
@@ -420,7 +420,7 @@ test('la descripción es obligatoria (error) y se lee de la primera fila; la mar
   ]);
   assert.equal(check(result, 'sin-descripcion').level, 'error');
   assert.deepEqual(idsOf(result, 'sin-descripcion'), ['P2', 'P3', 'P4']);
-  assert.match(notesOf(result, 'sin-descripcion')[1], /está en la fila 5, pero BE solo la lee de la primera fila/);
+  assert.match(notesOf(result, 'sin-descripcion')[1], /está en la fila 5, pero solo se toma de la primera fila/);
   assert.equal(check(result, 'sin-marca').level, 'aviso');
   assert.deepEqual(idsOf(result, 'sin-marca'), ['P5']);
 });

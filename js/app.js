@@ -189,11 +189,12 @@
       el('span', { class: 'count' }, plural(result.stats.rows, 'fila', 'filas')));
     if (!errors && !warnings && !verifying) head.append(el('span', { class: 'pill ok' }, 'Todo en orden'));
     if (verifying) head.append(el('span', { class: 'pill wait' }, 'Verificando imágenes…'));
-    out.append(el('div', { class: 'summary' }, head,
-      el('div', { class: 'stats' },
-        stat(result.stats.products, result.stats.products === 1 ? 'producto' : 'productos'),
-        stat(errors, errors === 1 ? 'error' : 'errores', errors ? 'bad' : 'ok'),
-        stat(warnings, warnings === 1 ? 'aviso' : 'avisos', warnings ? 'warn' : 'ok'))));
+    // Error and warning cards only show up when there is at least one.
+    var stats = el('div', { class: 'stats' },
+      stat(result.stats.products, result.stats.products === 1 ? 'producto' : 'productos'));
+    if (errors) stats.append(stat(errors, errors === 1 ? 'error' : 'errores', 'bad'));
+    if (warnings) stats.append(stat(warnings, warnings === 1 ? 'aviso' : 'avisos', 'warn'));
+    out.append(el('div', { class: 'summary' }, head, stats));
 
     GROUPS.forEach(function (g) {
       var checks = result.checks.filter(function (c) { return c.level === g.level && needsAttention(c); });
